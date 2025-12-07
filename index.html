@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emissão de DIF - ITAPREV</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <style>
+        :root {
+            --primary: #0056b3;
+            --secondary: #f4f4f4;
+            --text: #333;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--secondary);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        .logo {
+            max-width: 150px;
+            margin-bottom: 1rem;
+        }
+        h2 {
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+        }
+        .input-group {
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text);
+            font-weight: bold;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box; /* Garante que o padding não aumente a largura */
+            font-size: 1rem;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 1rem;
+        }
+        button:hover {
+            background-color: #004494;
+        }
+        .error-msg {
+            color: red;
+            margin-top: 1rem;
+            display: none;
+            font-size: 0.9rem;
+        }
+        .footer {
+            margin-top: 2rem;
+            font-size: 0.8rem;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div style="font-size: 2rem; font-weight: bold; color: var(--primary); margin-bottom: 10px;">ITAPREV</div>
+        
+        <h2>Emissão de DIF</h2>
+        <p>Informe seus dados para acessar o documento.</p>
+
+        <form id="loginForm">
+            <div class="input-group">
+                <label for="cpf">CPF (somente números):</label>
+                <input type="text" id="cpf" placeholder="000.000.000-00" maxlength="14" oninput="mascaraCPF(this)" required>
+            </div>
+
+            <div class="input-group">
+                <label for="dtnasc">Data de Nascimento:</label>
+                <input type="date" id="dtnasc" required>
+            </div>
+
+            <button type="submit">Acessar Documento</button>
+        </form>
+
+        <div id="mensagem" class="error-msg"></div>
+
+        <div class="footer">
+            Sistema de Consulta ITAPREV &copy; 2024
+        </div>
+    </div>
+
+    <script>
+        // Formata o CPF enquanto digita
+        function mascaraCPF(i){
+            var v = i.value;
+            if(isNaN(v[v.length-1])){ // impede entrar outro caractere que não seja número
+               i.value = v.substring(0, v.length-1);
+               return;
+            }
+            i.setAttribute("maxlength", "14");
+            if (v.length == 3 || v.length == 7) i.value += ".";
+            if (v.length == 11) i.value += "-";
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const msgDiv = document.getElementById('mensagem');
+            msgDiv.style.display = 'none';
+            msgDiv.innerText = '';
+
+            // 1. Pegar os valores e limpar formatação
+            let cpf = document.getElementById('cpf').value.replace(/\D/g, ''); // Remove pontos e traços
+            let dtnasc = document.getElementById('dtnasc').value.replace(/-/g, ''); // Fica AAAAMMDD
+
+            if (cpf.length !== 11) {
+                msgDiv.style.display = 'block';
+                msgDiv.innerText = 'CPF inválido. Verifique os números.';
+                return;
+            }
+
+            // 2. A MÁGICA DA SEGURANÇA (HASH)
+            // Criamos uma string única: CPF + DataNascimento
+            // Exemplo: 12345678900 + 19800520 = "1234567890019800520"
+            const chaveCombinada = cpf + dtnasc;
+
+            // Geramos o Hash SHA-256 dessa combinação
+            // Isso gera um código tipo: "a5f3c...9b2"
+            const hashNomeArquivo = CryptoJS.SHA256(chaveCombinada).toString();
+
+            // 3. Tentar abrir o arquivo
+            // O sistema vai procurar na pasta "documentos" um arquivo com esse nome hash
+            const caminhoArquivo = `./documentos/${hashNomeArquivo}.pdf`;
+
+            // Verificamos se o arquivo existe (fetch head request)
+            fetch(caminhoArquivo, { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        // Se encontrou, abre em nova aba
+                        window.open(caminhoArquivo, '_blank');
+                    } else {
+                        throw new Error('Arquivo não encontrado');
+                    }
+                })
+                .catch(error => {
+                    msgDiv.style.display = 'block';
+                    msgDiv.innerText = 'Documento não localizado. Verifique se o CPF e a Data de Nascimento estão corretos ou entre em contato com o ITAPREV.';
+                });
+        });
+    </script>
+</body>
+</html>
