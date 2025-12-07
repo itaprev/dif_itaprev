@@ -52,7 +52,7 @@
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            box-sizing: border-box; /* Garante que o padding não aumente a largura */
+            box-sizing: border-box; 
             font-size: 1rem;
         }
         button {
@@ -108,7 +108,7 @@
         <div id="mensagem" class="error-msg"></div>
 
         <div class="footer">
-            Sistema de Consulta ITAPREV &copy; 2024
+            Sistema de Consulta PREVTECH &copy; 2025
         </div>
     </div>
 
@@ -139,20 +139,19 @@
             if (cpf.length !== 11) {
                 msgDiv.style.display = 'block';
                 msgDiv.innerText = 'CPF inválido. Verifique os números.';
+                // Limpa os campos após o erro
+                document.getElementById('loginForm').reset();
                 return;
             }
 
             // 2. A MÁGICA DA SEGURANÇA (HASH)
             // Criamos uma string única: CPF + DataNascimento
-            // Exemplo: 12345678900 + 19800520 = "1234567890019800520"
             const chaveCombinada = cpf + dtnasc;
 
             // Geramos o Hash SHA-256 dessa combinação
-            // Isso gera um código tipo: "a5f3c...9b2"
             const hashNomeArquivo = CryptoJS.SHA256(chaveCombinada).toString();
 
             // 3. Tentar abrir o arquivo
-            // O sistema vai procurar na pasta "documentos" um arquivo com esse nome hash
             const caminhoArquivo = `./documentos/${hashNomeArquivo}.pdf`;
 
             // Verificamos se o arquivo existe (fetch head request)
@@ -161,6 +160,10 @@
                     if (response.ok) {
                         // Se encontrou, abre em nova aba
                         window.open(caminhoArquivo, '_blank');
+                        
+                        // 🟢 SUCESSO: LIMPA OS CAMPOS
+                        document.getElementById('loginForm').reset(); 
+                        
                     } else {
                         throw new Error('Arquivo não encontrado');
                     }
@@ -168,6 +171,9 @@
                 .catch(error => {
                     msgDiv.style.display = 'block';
                     msgDiv.innerText = 'Documento não localizado. Verifique se o CPF e a Data de Nascimento estão corretos ou entre em contato com o ITAPREV.';
+                    
+                    // 🔴 ERRO: LIMPA OS CAMPOS
+                    document.getElementById('loginForm').reset();
                 });
         });
     </script>
